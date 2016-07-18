@@ -12,7 +12,7 @@ use hyper::Client;
 use std::sync::mpsc::{channel, Sender, Receiver};
 use rustc_serialize::json;
 use std::collections::VecDeque;
-//use argparse::{ArgumentParser, StoreTrue, Store};
+// use argparse::{ArgumentParser, StoreTrue, Store};
 use pingnet::pingnet::PingPacket;
 
 fn main() {
@@ -40,7 +40,10 @@ fn start_transmit(rx: Receiver<PingPacket>) -> std::thread::JoinHandle<()> {
                 {
                     let collected_packets = buf.iter().collect::<Vec<&PingPacket>>();
                     let encoded_packets = &json::encode(&collected_packets).unwrap();
-                    client.post("http://localhost:1338/").body(encoded_packets).send().expect("Could not send HTTP-post request");
+                    client.post("http://localhost:1338/")
+                          .body(encoded_packets)
+                          .send()
+                          .expect("Could not send HTTP-post request");
                 }
                 buf.clear();
             }
