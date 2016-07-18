@@ -1,0 +1,11 @@
+[package]
+name = "pingcapr"
+version = "0.1.0"
+authors = ["Wouter de Vries <wouter@wouter-web.nl>"]
+
+[dependencies]
+pcap = "0.5.7"
+hyper = "0.9.10"
+log = "0.3.6"
+rustc-serialize = "0.3"
+argparse = "*"

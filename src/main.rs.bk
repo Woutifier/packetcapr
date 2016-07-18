@@ -1,0 +1,74 @@
+extern crate pcap;
+extern crate hyper;
+#[macro_use]
+extern crate log;
+extern crate rustc_serialize;
+
+use pcap::{Device, Capture};
+use std::thread;
+use hyper::Client;
+use std::sync::mpsc::{channel, Sender, Receiver};
+use rustc_serialize::json;
+use std::net::Ipv4Addr;
+
+#[derive(RustcDecodable, RustcEncodable)]
+pub struct PingPacket {
+    timestamp: i64,
+    srcip: String,
+    dstip: String,
+    id: u16,
+    seq: u16,
+}
+
+fn main() {
+    let (tx, rx) = channel();
+
+    let t_capture = start_capture(tx);
+    let t_transmit = start_transmit(rx);
+
+    t_capture.join().expect("Capture thread failed to exit without errors");
+    t_transmit.join().expect("Transmit thread failed to exit without errors");
+}
+
+fn start_transmit(rx: Receiver<PingPacket>) -> std::thread::JoinHandle<()> {
+    let t_transmit = thread::spawn(move || {
+        debug!("[t_transmit] Transmit thread started");
+        let client = Client::new();
+        loop {
+            debug!("[t_capture] Transmitting data");
+            let data = rx.recv().unwrap();
+            let encoded_packet = &json::encode(&data).unwrap();
+            let res = client.post("http://localhost:1338/").body(encoded_packet).send().unwrap();
+            assert_eq!(res.status, hyper::Ok);
+        }
+    });
+    t_transmit
+}
+
+fn prepare_capture() -> Capture<pcap::Active> {
+    let main_device = Device::lookup().unwrap();
+    let mut cap: Capture<pcap::Active> = Capture::from_device(main_device)
+                      .unwrap()
+                      .promisc(true)
+                      .snaplen(5000)
+                      .open()
+                      .unwrap();
+    cap.filter("icmp[icmptype] == icmp-echo").unwrap();
+    cap
+}
+
+fn start_capture<'a>(tx: Sender<PingPacket>) -> std::thread::JoinHandle<()> {
+    let t_capture = thread::spawn(move || {
+        let mut cap = prepare_capture();
+        debug!("[t_capture] Capture thread started");
+        while let Ok(packet) = cap.next() {
+            debug!("[t_capture] Packet received");
+            println!("{:?}", packet);
+            let srcip = Ipv4Addr::new(packet.data[26], packet.data[27], packet.data[28], packet.data[29]);
+            let dstip = Ipv4Addr::new(packet.data[30], packet.data[31], packet.data[32], packet.data[33]);
+            let pp = PingPacket{timestamp: packet.header.ts.tv_sec, srcip: srcip.to_string(), dstip: dstip.to_string(), id: ((packet.data[38] as u16)<<8 | (packet.data[39] as u16)), seq: ((packet.data[40] as u16) <<8 | (packet.data[41] as u16))};
+            tx.send(pp).unwrap();
+        }
+    });
+    t_capture
+}
