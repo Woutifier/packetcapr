@@ -8,6 +8,7 @@ use std::thread;
 use hyper::Client;
 use std::collections::VecDeque;
 use rustc_serialize::json;
+use Runnable;
 
 pub struct CaptureClient {
     post_url: String,
@@ -18,22 +19,24 @@ pub struct CaptureClient {
     transmit_thread: Option<thread::JoinHandle<()>>
 }
 
-impl CaptureClient {
-    pub fn new(post_url: String, buffer_size: u32) -> CaptureClient {
-        CaptureClient {post_url: post_url, buffer_size: buffer_size, bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"), sender: None, capture_thread: None, transmit_thread: None}
-    }
 
-    pub fn start(&mut self) {
+impl Runnable for CaptureClient {
+    fn exit(&mut self) {
+        self.sender.clone().unwrap().send(None).expect("Could not send poison pill to transmit thread");
+        let transmit_thread = self.transmit_thread.take().unwrap();
+        transmit_thread.join().expect("Could not exit gracefully");
+    }
+        fn start(&mut self) {
         let (tx, rx) = channel(); 
         self.sender = Some(tx.clone());
         self.capture_thread = Some(Self::start_capture(tx, self.prepare_capture()));
         self.transmit_thread = Some(Self::start_transmit(rx, self.post_url.clone(), self.buffer_size as usize));
     }
+}
 
-    pub fn exit(&mut self) {
-        self.sender.clone().unwrap().send(None).expect("Could not send poison pill to transmit thread");
-        let transmit_thread = self.transmit_thread.take().unwrap();
-        transmit_thread.join().expect("Could not exit gracefully");
+impl CaptureClient {
+    pub fn new(post_url: String, buffer_size: u32) -> CaptureClient {
+        CaptureClient {post_url: post_url, buffer_size: buffer_size, bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"), sender: None, capture_thread: None, transmit_thread: None}
     }
 
     fn start_capture<'a>(tx: Sender<Option<PingPacket>>, mut cap: Capture<pcap::Active>) -> thread::JoinHandle<()> {
