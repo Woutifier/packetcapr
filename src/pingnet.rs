@@ -1,8 +1,6 @@
 extern crate rustc_serialize;
 extern crate pcap;
 
-pub mod pingnet {
-
     #[derive(RustcDecodable, RustcEncodable)]
     pub struct PingPacket {
         timestamp: i64,
@@ -31,4 +29,3 @@ pub mod pingnet {
             }
         }
     }
-}
