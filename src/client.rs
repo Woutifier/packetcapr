@@ -16,30 +16,45 @@ pub struct CaptureClient {
     bpf_filter: String,
     sender: Option<Sender<Option<PingPacket>>>,
     capture_thread: Option<thread::JoinHandle<()>>,
-    transmit_thread: Option<thread::JoinHandle<()>>
+    transmit_thread: Option<thread::JoinHandle<()>>,
 }
 
 
 impl Runnable for CaptureClient {
     fn exit(&mut self) {
-        self.sender.clone().unwrap().send(None).expect("Could not send poison pill to transmit thread");
+        self.sender
+            .clone()
+            .unwrap()
+            .send(None)
+            .expect("Could not send poison pill to transmit thread");
         let transmit_thread = self.transmit_thread.take().unwrap();
         transmit_thread.join().expect("Could not exit gracefully");
     }
-        fn start(&mut self) {
-        let (tx, rx) = channel(); 
+    fn start(&mut self) {
+        let (tx, rx) = channel();
         self.sender = Some(tx.clone());
         self.capture_thread = Some(Self::start_capture(tx, self.prepare_capture()));
-        self.transmit_thread = Some(Self::start_transmit(rx, self.post_url.clone(), self.buffer_size as usize));
+        self.transmit_thread = Some(Self::start_transmit(rx,
+                                                         self.post_url.clone(),
+                                                         self.buffer_size as usize));
     }
 }
 
 impl CaptureClient {
     pub fn new(post_url: String, buffer_size: u32) -> CaptureClient {
-        CaptureClient {post_url: post_url, buffer_size: buffer_size, bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"), sender: None, capture_thread: None, transmit_thread: None}
+        CaptureClient {
+            post_url: post_url,
+            buffer_size: buffer_size,
+            bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"),
+            sender: None,
+            capture_thread: None,
+            transmit_thread: None,
+        }
     }
 
-    fn start_capture<'a>(tx: Sender<Option<PingPacket>>, mut cap: Capture<pcap::Active>) -> thread::JoinHandle<()> {
+    fn start_capture<'a>(tx: Sender<Option<PingPacket>>,
+                         mut cap: Capture<pcap::Active>)
+                         -> thread::JoinHandle<()> {
         let t_capture = thread::spawn(move || {
             debug!("[t_capture] Capture thread started");
             while let Ok(packet) = cap.next() {
@@ -51,7 +66,10 @@ impl CaptureClient {
         t_capture
     }
 
-    fn start_transmit(rx: Receiver<Option<PingPacket>>, post_url: String, buffer_size: usize) -> thread::JoinHandle<()> {
+    fn start_transmit(rx: Receiver<Option<PingPacket>>,
+                      post_url: String,
+                      buffer_size: usize)
+                      -> thread::JoinHandle<()> {
         let t_transmit = thread::spawn(move || {
             debug!("[t_transmit] Transmit thread started");
             let mut buf = VecDeque::new();
@@ -59,8 +77,8 @@ impl CaptureClient {
                 debug!("[t_capture] Transmitting data");
                 let data = rx.recv().unwrap();
 
-                if data.is_some() {
-                    buf.push_back(data.unwrap());
+                if let Some(data) = data {
+                    buf.push_back(data);
 
                     if buf.len() >= buffer_size {
                         if Self::http_send_packets(&buf, &post_url).is_ok() {
@@ -68,7 +86,8 @@ impl CaptureClient {
                         }
                     }
                 } else {
-                    Self::http_send_packets(&buf, &post_url).expect("Unable to send final batch of packets");
+                    Self::http_send_packets(&buf, &post_url)
+                        .expect("Unable to send final batch of packets");
                     break;
                 }
             }
@@ -76,24 +95,26 @@ impl CaptureClient {
         t_transmit
     }
 
-    fn http_send_packets(buffer: &VecDeque<PingPacket>, post_url: &str) -> Result<hyper::client::Response, hyper::Error> {
+    fn http_send_packets(buffer: &VecDeque<PingPacket>,
+                         post_url: &str)
+                         -> Result<hyper::client::Response, hyper::Error> {
         let client = Client::new();
         let collected_packets = buffer.iter().collect::<Vec<&PingPacket>>();
         let encoded_packets = &json::encode(&collected_packets).unwrap();
         let result = client.post(post_url)
-                .body(encoded_packets)
-                .send();
+                           .body(encoded_packets)
+                           .send();
         result
     }
 
     fn prepare_capture(&self) -> Capture<pcap::Active> {
         let main_device = Device::lookup().unwrap();
         let mut cap: Capture<pcap::Active> = Capture::from_device(main_device)
-                                                .unwrap()
-                                                .promisc(true)
-                                                .snaplen(5000)
-                                                .open()
-                                                .unwrap();
+                                                 .unwrap()
+                                                 .promisc(true)
+                                                 .snaplen(5000)
+                                                 .open()
+                                                 .unwrap();
         cap.filter(&self.bpf_filter).unwrap();
         cap
     }

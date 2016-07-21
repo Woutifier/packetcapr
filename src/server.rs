@@ -1,41 +1,65 @@
-extern crate pcap;
 extern crate hyper;
 extern crate rustc_serialize;
-use pcap::{Device, Capture};
-use std::sync::mpsc::{channel, Sender, Receiver};
-use pingnet::PingPacket;
+use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use hyper::Server;
 use hyper::server::{Handler, Request, Response, Fresh};
-use std::collections::VecDeque;
-use rustc_serialize::json;
-use std::net::{SocketAddrV4, TcpStream, UdpSocket, TcpListener, Ipv4Addr};
+use hyper::uri::RequestUri::AbsolutePath;
+use std::net::{SocketAddrV4, Ipv4Addr};
 use Runnable;
 use std::str::FromStr;
+use std::io::Write;
+use std::io::Read;
+use std::sync::Mutex;
 
 pub struct CaptureServer {
     address: SocketAddrV4,
 }
 
-impl Runnable for CaptureServer {
-    fn start(&mut self) {
-        let result = Server::http(self.address).unwrap();
-        result.handle(self);
-    }
+pub struct HttpHandler {
+    sender: Mutex<Sender<String>>,
+}
 
-    fn exit(&mut self) {
+impl Handler for HttpHandler {
+    fn handle<'a, 'k>(&'a self, req: Request<'a, 'k>, res: Response<'a, Fresh>) {
+        let mut res = res.start().unwrap();
+        let (_, _, _, requri, _, mut reader) = req.deconstruct();
 
+        if let AbsolutePath(uri) = requri {
+            if uri == "/api" {
+                let mut buf: String = String::new();
+                reader.read_to_string(&mut buf).expect("Could not read from HTTP-stream");
+                self.sender.lock().unwrap().send(buf).unwrap();
+            }
+        } else {
+            res.write_all(b"<html><head></head><body><h1>Unknown request</body></html>").unwrap();
+        }
+
+        res.end().unwrap();
     }
 }
 
-impl Handler for CaptureServer {
-    fn handle(&self, mut req: Request, mut resp: Response) {
-        
+impl Runnable for CaptureServer {
+    fn start(&mut self) {
+        let address = self.address.clone();
+        let (tx,rx) = channel();
+        thread::spawn(move || {
+            let result = Server::http(address).unwrap();
+            result.handle(HttpHandler{sender: Mutex::new(tx)}).expect("Could not start HTTP-handler");
+        });
+        thread::spawn(move || {
+            loop {
+                let data = rx.recv().unwrap();
+                println!("{}", data);
+            }
+        });
     }
+
+    fn exit(&mut self) {}
 }
 
 impl CaptureServer {
     pub fn new(ip: String, port: u16) -> CaptureServer {
-        CaptureServer{address: SocketAddrV4::new(Ipv4Addr::from_str(&ip).unwrap(), port)}
+        CaptureServer { address: SocketAddrV4::new(Ipv4Addr::from_str(&ip).unwrap(), port) }
     }
 }
