@@ -3,7 +3,7 @@ extern crate hyper;
 extern crate rustc_serialize;
 use pcap::{Device, Capture};
 use std::sync::mpsc::{channel, Sender, Receiver};
-use pingnet::{PingPacket, PacketContainer};
+use packet::{PingPacket, PacketContainer};
 use std::thread;
 use hyper::Client;
 use std::collections::VecDeque;

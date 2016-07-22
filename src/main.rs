@@ -4,7 +4,7 @@ extern crate hyper;
 extern crate log;
 extern crate rustc_serialize;
 extern crate argparse;
-mod pingnet;
+mod packet;
 mod client;
 mod server;
 
