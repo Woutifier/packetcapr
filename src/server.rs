@@ -11,6 +11,8 @@ use std::str::FromStr;
 use std::io::Write;
 use std::io::Read;
 use std::sync::Mutex;
+use rustc_serialize::{json};
+use packet::{PacketContainer, PingPacket};
 
 pub struct CaptureServer {
     address: SocketAddrV4,
@@ -51,7 +53,10 @@ impl Runnable for CaptureServer {
         thread::spawn(move || {
             loop {
                 let data = rx.recv().unwrap();
-                println!("{}", data);
+                let packet: PacketContainer<PingPacket> = json::decode(&data).unwrap();
+                for item in packet.data {
+                    println!("{}|{}|{}|{}|{}", &packet.host_identifier, item.srcip, item.dstip, item.id, item.seq);
+                }
             }
         });
     }

@@ -11,11 +11,11 @@ pub struct PacketContainer<T: Encodable> {
 
 #[derive(RustcDecodable, RustcEncodable)]
 pub struct PingPacket {
-    timestamp: i64,
-    srcip: String,
-    dstip: String,
-    id: u16,
-    seq: u16,
+    pub timestamp: i64,
+    pub srcip: String,
+    pub dstip: String,
+    pub id: u16,
+    pub seq: u16,
 }
 
 impl<'a> From<::pcap::Packet<'a>> for PingPacket {
