@@ -1,5 +1,5 @@
 [package]
-name = "pingcapr"
+name = "packetcapr"
 version = "0.1.0"
 authors = ["Wouter de Vries <wouter@wouter-web.nl>"]
 

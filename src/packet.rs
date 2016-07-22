@@ -4,18 +4,18 @@ extern crate pcap;
 use rustc_serialize::Encodable;
 
 #[derive(RustcDecodable, RustcEncodable)]
+pub struct PacketContainer<T: Encodable> {
+    pub host_identifier: String,
+    pub data: Vec<T>,
+}
+
+#[derive(RustcDecodable, RustcEncodable)]
 pub struct PingPacket {
     timestamp: i64,
     srcip: String,
     dstip: String,
     id: u16,
     seq: u16,
-}
-
-#[derive(RustcDecodable, RustcEncodable)]
-pub struct PacketContainer<T: Encodable> {
-    pub host_identifier: String,
-    pub data: Vec<T>,
 }
 
 impl<'a> From<::pcap::Packet<'a>> for PingPacket {

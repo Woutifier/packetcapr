@@ -30,7 +30,7 @@ fn main() {
     {
         // this block limits scope of borrows by ap.refer() method
         let mut ap = ArgumentParser::new();
-        ap.set_description("Captures ping replies and sends them, in batches, to a specified URL \
+        ap.set_description("Captures packets and sends them, in batches, to a specified URL \
                             using HTTP");
         ap.refer(&mut verbose)
           .add_option(&["-v", "--verbose"], StoreTrue, "Be verbose");
