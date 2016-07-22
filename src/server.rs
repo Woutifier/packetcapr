@@ -42,10 +42,11 @@ impl Handler for HttpHandler {
 impl Runnable for CaptureServer {
     fn start(&mut self) {
         let address = self.address.clone();
-        let (tx,rx) = channel();
+        let (tx, rx) = channel();
         thread::spawn(move || {
             let result = Server::http(address).unwrap();
-            result.handle(HttpHandler{sender: Mutex::new(tx)}).expect("Could not start HTTP-handler");
+            result.handle(HttpHandler { sender: Mutex::new(tx) })
+                  .expect("Could not start HTTP-handler");
         });
         thread::spawn(move || {
             loop {
