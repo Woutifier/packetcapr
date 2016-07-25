@@ -16,6 +16,6 @@ matrix:
   allow_failures:
     - rust: nightly
 after_success:
-  - docker run --rm -it -v "$TRAVIS_BUILD_DIR:/home/rust/src" woutifier/rust-musl-builder cargo build --release
+  - docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder cargo build --release
     
 
