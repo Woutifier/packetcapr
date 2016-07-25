@@ -1,5 +1,15 @@
 # packetcapr 
 
+## Dependencies
+- Rust
+- Libpcap
+
+## Build
+```
+cargo build --release
+```
+
+## Commandline options
 ```Usage:
     ./packetcapr [OPTIONS]
 
@@ -15,5 +25,6 @@ optional arguments:
   -i,--hostidentifier HOSTIDENTIFIER
                         Identifier that will be added to each request (default:
                         default)
-  -p,--port PORT        Port to listen on in server mode (default: 1338)```
+  -p,--port PORT        Port to listen on in server mode (default: 1338)
+  ```
 
