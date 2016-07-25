@@ -1,5 +1,5 @@
 # packetcapr 
-
+[![Build Status](https://travis-ci.org/Woutifier/packetcapr.svg?branch=master)](https://travis-ci.org/Woutifier/packetcapr)
 ## Dependencies
 - Rust
 - Libpcap
