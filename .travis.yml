@@ -1,4 +1,10 @@
 language: rust
+
+sudo: required
+
+services:
+  - docker
+
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y libpcap0.8-dev
@@ -9,3 +15,7 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+script:
+  - docker run --rm -it -v "$(TRAVIS_BUILD_DIR):/home/rust/src" woutifier/rust-musl-builder cargo build --release
+    
+
