@@ -16,6 +16,7 @@ matrix:
   allow_failures:
     - rust: nightly
 after_success:
+  - stat $TRAVIS_BUILD_DIR
   - docker run --rm -it -v "/home/travis/build/Woutifier/packetcapr":/home/rust/src woutifier/rust-musl-builder cargo build --release --verbose
     
 
