@@ -9,6 +9,9 @@
 cargo build --release
 ```
 
+## Binaries
+Statically compiled binaries for x86_64 are provided. See: https://github.com/Woutifier/packetcapr/releases
+
 ## Commandline options
 ```Usage:
     ./packetcapr [OPTIONS]
