@@ -1,21 +1,24 @@
 language: rust
-
 sudo: required
-
 services:
-  - docker
-
+- docker
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libpcap0.8-dev
+- sudo apt-get -qq update
+- sudo apt-get install -y libpcap0.8-dev
 rust:
-  - stable
-  - beta
-  - nightly
+- stable
+- beta
+- nightly
 matrix:
   allow_failures:
-    - rust: nightly
+  - rust: nightly
 after_success:
-  - docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder cargo build --release --verbose
-    
-
+- docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder
+  cargo build --release --verbose
+deploy:
+  provider: releases
+  api_key:
+    secure: C2yRN38QwhAahQNdWvMtX1iUDh+MuF1VU0oW5dprF+xkD8aeDk45rfcOb4ePxZRZ3U8gzGdz+g1ZaqxUGDpK3y96JDjw+ReAtKMbQi0BqpbOfpPd/QmlO7aNzzP0g/s0Xhn/U57imeY2W2TCb9C6ULxCVEJxR5TJPlDW4wZxDZJvJ5DC+W+chNELpPps/sAWAhimba57kxZm0Imw9SXnUhgIpovAOSmvEXKMS6KSwj1linHbOM9qmn2VcHL0Li1HXaS6i3XNau5fibl6YG51Cfyx+yhUAQOFvjdvwn6dgpejuAqPffqhscNvy6KXMGmwvBW7sX2INd6FluJy0M58gcrCZnOV3Md68ogkQOAY58cEWBKkebE7a++OV3J4YAXjw1DUxYJwtbVWfd791oK5Af26jniX7YECIS7sWoAJeLBLwTC06fDRIAtjLJ1wRaHvpr1yKsKZfQvlwYOS8f2obO50idbkeNsscLEa16ERLSdADFfyOxjXfVkLR3kZoTw9khoa5oGGsNYo2VfXZK9vDUZxyz49ce+7eVC2ieHAhSktfSZ9dzWb9Wi2lZv8o2SdwLrS1ZWah3QuuaBFbjfKMfNGb5ENE66lfzFdtIUf6vSqT6XaH1RisjD0dIflDwlEXTy0j0LAJ+7eDLsHi1//5klJ3XPQjeNCRj/1csVwfgo=
+  file: $TRAVIS_BUILD_DIR/target/x86_64-unknown-linux-musl/release/packetcapr
+  on:
+    repo: Woutifier/packetcapr
