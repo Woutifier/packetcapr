@@ -14,9 +14,7 @@ matrix:
   allow_failures:
   - rust: nightly
 after_success:
-- echo $TRAVIS_RUST_VERSION
-- docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder
-  cargo build --release --verbose
+- test $TRAVIS_RUST_VERSION = stable && docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder cargo build --release --verbose
 deploy:
   provider: releases
   skip_cleanup: true
@@ -25,3 +23,4 @@ deploy:
   file: $TRAVIS_BUILD_DIR/target/x86_64-unknown-linux-musl/release/packetcapr
   on:
     repo: Woutifier/packetcapr
+    tags: true
