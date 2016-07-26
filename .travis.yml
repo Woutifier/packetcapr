@@ -1,4 +1,5 @@
 language: rust
+cache: cargo
 sudo: required
 services:
 - docker
@@ -13,6 +14,7 @@ matrix:
   allow_failures:
   - rust: nightly
 after_success:
+- echo $TRAVIS_RUST_VERSION
 - docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder
   cargo build --release --verbose
 deploy:
