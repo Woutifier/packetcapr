@@ -21,7 +21,7 @@ pub trait Runnable {
 
 fn main() {
     let mut verbose = false;
-    let mut client_post_url = "http://localhost:1338".to_string();
+    let mut client_post_url = "http://localhost:1338/api".to_string();
     let mut client_buffer_size = 10;
     let mut server_port = 1338;
     let mut client_host_identifier = "default".to_string();
@@ -41,7 +41,7 @@ fn main() {
         ap.refer(&mut client_post_url)
           .add_option(&["-u", "--url"],
                       Store,
-                      "URL to send packets to (default: http://localhost:1338)");
+                      "URL to send packets to (default: http://localhost:1338/api)");
         ap.refer(&mut client_buffer_size)
           .add_option(&["-b", "--batchsize"],
                       Store,

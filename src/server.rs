@@ -55,7 +55,7 @@ impl Runnable for CaptureServer {
                 let data = rx.recv().unwrap();
                 let packet: PacketContainer<PingPacket> = json::decode(&data).unwrap();
                 for item in packet.data {
-                    println!("{}|{}|{}|{}|{}", &packet.host_identifier, item.srcip, item.dstip, item.id, item.seq);
+                    println!("{}|{}|{}|{}|{}|{}", &packet.host_identifier, item.timestamp, item.srcip, item.dstip, item.id, item.seq);
                 }
             }
         });
