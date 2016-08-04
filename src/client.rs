@@ -9,24 +9,31 @@ use hyper::Client;
 use std::collections::VecDeque;
 use rustc_serialize::{json, Encodable};
 use Runnable;
+use std::time::Duration;
 
 pub struct CaptureClient {
     post_url: String,
     buffer_size: u32,
     bpf_filter: String,
     identifier: String,
-    sender: Option<Sender<Option<PingPacket>>>,
+    timer: Option<u64>,
+    sender: Option<Sender<Message>>,
     capture_thread: Option<thread::JoinHandle<()>>,
     transmit_thread: Option<thread::JoinHandle<()>>,
 }
 
+enum Message {
+    Poison,
+    TimerTick,
+    Data(PingPacket),
+}
 
 impl Runnable for CaptureClient {
     fn exit(&mut self) {
         self.sender
             .clone()
             .unwrap()
-            .send(None)
+            .send(Message::Poison)
             .expect("Could not send poison pill to transmit thread");
         let transmit_thread = self.transmit_thread.take().unwrap();
         transmit_thread.join().expect("Could not exit gracefully");
@@ -34,20 +41,37 @@ impl Runnable for CaptureClient {
     fn start(&mut self) {
         let (tx, rx) = channel();
         self.sender = Some(tx.clone());
-        self.capture_thread = Some(Self::start_capture(tx, self.prepare_capture()));
+        self.capture_thread = Some(Self::start_capture(tx.clone(), self.prepare_capture()));
         self.transmit_thread = Some(Self::start_transmit(rx,
                                                          self.post_url.clone(),
                                                          self.buffer_size as usize,
                                                          self.identifier.clone()));
+        if self.timer.is_some() {
+            let timer_tx = tx.clone();
+            let timer_secs = self.timer.unwrap();
+            thread::spawn(move || {
+                let duration = Duration::from_secs(timer_secs);
+                loop {
+                    ::std::thread::sleep(duration);
+                    timer_tx.send(Message::TimerTick)
+                            .expect("Could not send TimerTick to transmit thread");
+                }
+            });
+        }
     }
 }
 
 impl CaptureClient {
-    pub fn new(post_url: String, buffer_size: u32, identifier: String) -> CaptureClient {
+    pub fn new(post_url: String,
+               buffer_size: u32,
+               identifier: String,
+               timer: Option<u64>)
+               -> CaptureClient {
         CaptureClient {
             post_url: post_url,
             buffer_size: buffer_size,
             identifier: identifier,
+            timer: timer,
             bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"),
             sender: None,
             capture_thread: None,
@@ -55,7 +79,7 @@ impl CaptureClient {
         }
     }
 
-    fn start_capture<'a>(tx: Sender<Option<PingPacket>>,
+    fn start_capture<'a>(tx: Sender<Message>,
                          mut cap: Capture<pcap::Active>)
                          -> thread::JoinHandle<()> {
         let t_capture = thread::spawn(move || {
@@ -63,13 +87,13 @@ impl CaptureClient {
             while let Ok(packet) = cap.next() {
                 debug!("[t_capture] Packet received");
                 let pp = PingPacket::from(packet);
-                tx.send(Some(pp)).unwrap();
+                tx.send(Message::Data(pp)).unwrap();
             }
         });
         t_capture
     }
 
-    fn start_transmit(rx: Receiver<Option<PingPacket>>,
+    fn start_transmit(rx: Receiver<Message>,
                       post_url: String,
                       buffer_size: usize,
                       identifier: String)
@@ -81,19 +105,32 @@ impl CaptureClient {
                 debug!("[t_capture] Transmitting data");
                 let data = rx.recv().unwrap();
 
-                if let Some(data) = data {
-                    buf.push_back(data);
+                match data {
+                    Message::Data(data) => {
+                        buf.push_back(data);
 
-                    if buf.len() >= buffer_size {
-                        let result = Self::http_send_packets(&mut buf, &post_url, &identifier);
-                        if result.is_err() {
-                            println!("Failed to transmit data. (Retry will occur)");
+                        if buf.len() >= buffer_size {
+                            let result = Self::http_send_packets(&mut buf, &post_url, &identifier);
+                            if result.is_err() {
+                                println!("Failed to transmit data. (Retry will occur)");
+                            }
                         }
                     }
-                } else {
-                    Self::http_send_packets(&mut buf, &post_url, &identifier)
-                        .expect("Unable to send final batch of packets");
-                    break;
+                    Message::Poison => {
+                        let result = Self::http_send_packets(&mut buf, &post_url, &identifier);
+                        if result.is_err() {
+                            println!("Failed to transmit final batch of data");
+                        }
+                        break;
+                    }
+                    Message::TimerTick => {
+                        if buf.len() > 0 {
+                            let result = Self::http_send_packets(&mut buf, &post_url, &identifier);
+                            if result.is_err() {
+                                println!("Failed to transmit data. (Retry will occur)");
+                            }
+                        }
+                    }
                 }
             }
         });

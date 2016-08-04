@@ -1,6 +1,6 @@
 [package]
 name = "packetcapr"
-version = "0.1.0"
+version = "0.1.2"
 authors = ["Wouter de Vries <wouter@wouter-web.nl>"]
 
 [dependencies]

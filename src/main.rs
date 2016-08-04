@@ -25,6 +25,7 @@ fn main() {
     let mut client_buffer_size = 10;
     let mut server_port = 1338;
     let mut client_host_identifier = "default".to_string();
+    let mut timer: u64 = 0;
 
     let mut server_mode = false;
     {
@@ -54,7 +55,19 @@ fn main() {
           .add_option(&["-p", "--port"],
                       Store,
                       "Port to listen on in server mode (default: 1338)");
+        ap.refer(&mut timer)
+          .add_option(&["-t", "--timer"],
+                      Store,
+                      "Interval (in seconds) at which packets will be transmitted (if any \
+                       packets are in the buffer)");
         ap.parse_args_or_exit();
+    }
+
+    let timer_opt: Option<u64>;
+    if timer == 0 {
+        timer_opt = None;
+    } else {
+        timer_opt = Some(timer);
     }
 
     let runner: Option<Box<Runnable>>;
@@ -63,7 +76,8 @@ fn main() {
     } else {
         runner = Some(Box::new(CaptureClient::new(client_post_url,
                                                   client_buffer_size,
-                                                  client_host_identifier)));
+                                                  client_host_identifier,
+                                                  timer_opt)));
     }
     let mut runner: Box<Runnable> = runner.unwrap();
 
