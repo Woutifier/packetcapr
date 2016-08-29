@@ -26,6 +26,7 @@ fn main() {
     let mut server_port = 1338;
     let mut client_host_identifier = "default".to_string();
     let mut timer: u64 = 0;
+    let mut bpf_addon = "".to_string();
 
     let mut server_mode = false;
     {
@@ -60,6 +61,10 @@ fn main() {
                       Store,
                       "Interval (in seconds) at which packets will be transmitted (if any \
                        packets are in the buffer)");
+        ap.refer(&mut bpf_addon)
+            .add_option(&["-b", "--bpf"],
+            Store,
+            "Additional packet filter (BPF-format) to use while capturing");
         ap.parse_args_or_exit();
     }
 
@@ -70,6 +75,13 @@ fn main() {
         timer_opt = Some(timer);
     }
 
+    let bpf_opt: Option<String>;
+    if bpf_addon.len() == 0 {
+        bpf_opt = None;
+    } else {
+        bpf_opt = Some(bpf_addon);
+    }
+
     let runner: Option<Box<Runnable>>;
     if server_mode {
         runner = Some(Box::new(CaptureServer::new(String::from("0.0.0.0"), server_port)));
@@ -77,7 +89,7 @@ fn main() {
         runner = Some(Box::new(CaptureClient::new(client_post_url,
                                                   client_buffer_size,
                                                   client_host_identifier,
-                                                  timer_opt)));
+                                                  timer_opt, bpf_opt)));
     }
     let mut runner: Box<Runnable> = runner.unwrap();
 

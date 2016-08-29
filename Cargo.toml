@@ -10,3 +10,6 @@ log = "0.3.6"
 rustc-serialize = "0.3"
 argparse = "*"
 libc = "0.2.14"
+
+[profile.dev]
+debug = true

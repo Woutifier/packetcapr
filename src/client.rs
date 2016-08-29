@@ -65,18 +65,31 @@ impl CaptureClient {
     pub fn new(post_url: String,
                buffer_size: u32,
                identifier: String,
-               timer: Option<u64>)
+               timer: Option<u64>,
+               bpf_addon: Option<String>)
                -> CaptureClient {
         CaptureClient {
             post_url: post_url,
             buffer_size: buffer_size,
             identifier: identifier,
             timer: timer,
-            bpf_filter: String::from("icmp[icmptype] == icmp-echoreply"),
+            bpf_filter: CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply".to_string()), bpf_addon]),
             sender: None,
             capture_thread: None,
             transmit_thread: None,
         }
+    }
+
+    fn compose_bpf(parts: Vec<Option<String>>) -> String {
+        let res1 = parts.iter().filter(|x| x.is_some());
+        let mut build = "".to_string();
+        for r in res1 {
+            if build.len() > 0 {
+                build = build + " and ";
+            }
+            build = build + &(r.clone().unwrap());
+        }
+        build
     }
 
     fn start_capture<'a>(tx: Sender<Message>,
@@ -178,5 +191,22 @@ impl CaptureClient {
                                                  .unwrap();
         cap.filter(&self.bpf_filter).unwrap();
         cap
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CaptureClient;
+
+    #[test]
+    fn test_compose_bpf1() {
+        let result = CaptureClient::compose_bpf(vec![Some("test1".to_string()), Some("test2".to_string())]);
+        assert_eq!(result, "test1 and test2");
+    }
+
+    #[test]
+    fn test_compose_bpf2() {
+        let result = CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply".to_string())]);
+        assert_eq!(result, "icmp[icmptype] == icmp-echoreply");
     }
 }
