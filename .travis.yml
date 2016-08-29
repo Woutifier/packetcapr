@@ -14,13 +14,13 @@ matrix:
   allow_failures:
   - rust: nightly
 after_success:
-- test $TRAVIS_RUST_VERSION = stable && docker run --rm -it -v "$TRAVIS_BUILD_DIR":/home/rust/src woutifier/rust-musl-builder cargo build --release --verbose
+  - test $TRAVIS_RUST_VERSION = stable && docker create --name builder woutifier/rust-musl-builder /bin/bash -c "sudo chown -R rust:rust /home/rust/src; cargo build --release --verbose" && docker cp "${TRAVIS_BUILD_DIR}/." builder:/home/rust/src && docker start -i builder && docker cp builder:/home/rust/src/target/x86_64-unknown-linux-musl/release/packetcapr $TRAVIS_BUILD_DIR/packetcapr
 deploy:
   provider: releases
   skip_cleanup: true
   api_key:
     secure: C2yRN38QwhAahQNdWvMtX1iUDh+MuF1VU0oW5dprF+xkD8aeDk45rfcOb4ePxZRZ3U8gzGdz+g1ZaqxUGDpK3y96JDjw+ReAtKMbQi0BqpbOfpPd/QmlO7aNzzP0g/s0Xhn/U57imeY2W2TCb9C6ULxCVEJxR5TJPlDW4wZxDZJvJ5DC+W+chNELpPps/sAWAhimba57kxZm0Imw9SXnUhgIpovAOSmvEXKMS6KSwj1linHbOM9qmn2VcHL0Li1HXaS6i3XNau5fibl6YG51Cfyx+yhUAQOFvjdvwn6dgpejuAqPffqhscNvy6KXMGmwvBW7sX2INd6FluJy0M58gcrCZnOV3Md68ogkQOAY58cEWBKkebE7a++OV3J4YAXjw1DUxYJwtbVWfd791oK5Af26jniX7YECIS7sWoAJeLBLwTC06fDRIAtjLJ1wRaHvpr1yKsKZfQvlwYOS8f2obO50idbkeNsscLEa16ERLSdADFfyOxjXfVkLR3kZoTw9khoa5oGGsNYo2VfXZK9vDUZxyz49ce+7eVC2ieHAhSktfSZ9dzWb9Wi2lZv8o2SdwLrS1ZWah3QuuaBFbjfKMfNGb5ENE66lfzFdtIUf6vSqT6XaH1RisjD0dIflDwlEXTy0j0LAJ+7eDLsHi1//5klJ3XPQjeNCRj/1csVwfgo=
-  file: $TRAVIS_BUILD_DIR/target/x86_64-unknown-linux-musl/release/packetcapr
+  file: $TRAVIS_BUILD_DIR/packetcapr
   on:
     condition: $TRAVIS_RUST_VERSION = stable
     repo: Woutifier/packetcapr
