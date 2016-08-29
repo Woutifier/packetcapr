@@ -73,7 +73,9 @@ impl CaptureClient {
             buffer_size: buffer_size,
             identifier: identifier,
             timer: timer,
-            bpf_filter: CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply".to_string()), bpf_addon]),
+            bpf_filter: CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply"
+                                                                 .to_string()),
+                                                        bpf_addon]),
             sender: None,
             capture_thread: None,
             transmit_thread: None,
@@ -200,13 +202,15 @@ mod tests {
 
     #[test]
     fn test_compose_bpf1() {
-        let result = CaptureClient::compose_bpf(vec![Some("test1".to_string()), Some("test2".to_string())]);
+        let result = CaptureClient::compose_bpf(vec![Some("test1".to_string()),
+                                                     Some("test2".to_string())]);
         assert_eq!(result, "test1 and test2");
     }
 
     #[test]
     fn test_compose_bpf2() {
-        let result = CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply".to_string())]);
+        let result = CaptureClient::compose_bpf(vec![Some("icmp[icmptype] == icmp-echoreply"
+                                                              .to_string())]);
         assert_eq!(result, "icmp[icmptype] == icmp-echoreply");
     }
 }

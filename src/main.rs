@@ -62,9 +62,9 @@ fn main() {
                       "Interval (in seconds) at which packets will be transmitted (if any \
                        packets are in the buffer)");
         ap.refer(&mut bpf_addon)
-            .add_option(&["-b", "--bpf"],
-            Store,
-            "Additional packet filter (BPF-format) to use while capturing");
+          .add_option(&["-b", "--bpf"],
+                      Store,
+                      "Additional packet filter (BPF-format) to use while capturing");
         ap.parse_args_or_exit();
     }
 
@@ -89,7 +89,8 @@ fn main() {
         runner = Some(Box::new(CaptureClient::new(client_post_url,
                                                   client_buffer_size,
                                                   client_host_identifier,
-                                                  timer_opt, bpf_opt)));
+                                                  timer_opt,
+                                                  bpf_opt)));
     }
     let mut runner: Box<Runnable> = runner.unwrap();
 
