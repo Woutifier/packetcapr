@@ -8,13 +8,10 @@ before_install:
 - sudo apt-get install -y libpcap0.8-dev
 rust:
 - stable
-- beta
-- nightly
 matrix:
   allow_failures:
   - rust: nightly
-after_success:
-  - test $TRAVIS_RUST_VERSION = stable && docker create --name builder woutifier/rust-musl-builder /bin/bash -c "sudo chown -R rust:rust /home/rust/src; cargo build --release --verbose" && docker cp "${TRAVIS_BUILD_DIR}/." builder:/home/rust/src && docker start -i builder && docker cp builder:/home/rust/src/target/x86_64-unknown-linux-musl/release/packetcapr $TRAVIS_BUILD_DIR/packetcapr
+script: cargo build --release
 deploy:
   provider: releases
   skip_cleanup: true
